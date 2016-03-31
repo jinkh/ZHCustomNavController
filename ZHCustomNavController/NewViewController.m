@@ -28,7 +28,7 @@
     self.view.backgroundColor = [UIColor colorWithRed:236/255.0f green:236/255.0f blue:236/255.0f alpha:1];
     
     //new nav
-    UIImageView *navView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 63)];
+    UIImageView *navView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 64)];
     navView.backgroundColor = self.view.backgroundColor;
     //navView.image = [UIImage imageNamed:@"nav_bg"];
     navView.contentMode = UIViewContentModeScaleAspectFill;
@@ -54,12 +54,9 @@
     [navView addSubview:titleLabel];
     self.zh_customNav = navView;
     self.zh_showCustomNav = YES;
-    self.zh_autoDisplayCustomNav = YES;
-    
-    CGFloat navHeight = self.zh_customNav.frame.size.height;
+
     data = @[@"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test", @"test"];
-    bgView = [[UITableView alloc] initWithFrame:CGRectMake(0, 0,  self.view.frame.size.width, self.view.frame.size.height)];
-    bgView.contentInset = UIEdgeInsetsMake(navHeight, 0, 0, 0);
+    bgView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64,  self.view.frame.size.width, self.view.frame.size.height-64)];
     bgView.delegate = self;
     bgView.dataSource = self;
     bgView.separatorStyle = UITableViewCellSeparatorStyleSingleLine;

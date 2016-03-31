@@ -16,9 +16,6 @@
 
 @property (assign, nonatomic) BOOL zh_showCustomNav;
 
-//当viewcontroller中包含scrollview,并且上下滑动，自动显示隐藏CustomNav
-@property (assign, nonatomic) BOOL zh_autoDisplayCustomNav;
-
 -(void)reloadCustomNav;
 
 

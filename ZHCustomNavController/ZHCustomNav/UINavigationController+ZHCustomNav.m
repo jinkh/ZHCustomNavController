@@ -11,6 +11,11 @@
 
 - (BOOL)gestureRecognizerShouldBegin:(UIPanGestureRecognizer *)gestureRecognizer
 {
+    // Ignore when no view controller is pushed into the navigation stack.
+    if (self.navigationController.viewControllers.count <= 1) {
+        return NO;
+    }
+    
     // Disable when the active view controller doesn't allow interactive pop.
     UIViewController *topViewController = self.navigationController.viewControllers.lastObject;
     if (topViewController.zh_interactivePopDisabled) {
@@ -22,27 +27,12 @@
         return NO;
     }
     
-    // Ignore when no view controller is pushed into the navigation stack.
-    if (self.navigationController.viewControllers.count <= 1) {
-        objc_setAssociatedObject(gestureRecognizer, @"popBack", [NSNumber numberWithBool:0], OBJC_ASSOCIATION_COPY_NONATOMIC);
-        return YES;
-    }
-    
+    // Prevent calling the handler when the gesture begins in an opposite direction.
     CGPoint translation = [gestureRecognizer translationInView:gestureRecognizer.view];
-    if (fabs(translation.y) < fabs(translation.x)) {
-        objc_setAssociatedObject(gestureRecognizer, @"popBack", [NSNumber numberWithBool:1], OBJC_ASSOCIATION_COPY_NONATOMIC);
-    } else {
-        objc_setAssociatedObject(gestureRecognizer, @"popBack", [NSNumber numberWithBool:0], OBJC_ASSOCIATION_COPY_NONATOMIC);
-    }
-    
-    return YES;
-}
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
-{
-    BOOL popBack = [objc_getAssociatedObject(gestureRecognizer, @"popBack") boolValue];
-    if (popBack) {
+    if (translation.x <= 0) {
         return NO;
     }
+    
     return YES;
 }
 
@@ -78,11 +68,11 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
 
 - (void)zh_viewWillAppear:(BOOL)animated
 {
-
+    
     [self zh_viewWillAppear:animated];
     
     [self reloadCustomNav];
-
+    
     if (self.zh_willAppearInjectBlock) {
         self.zh_willAppearInjectBlock(self, animated);
     }
@@ -112,10 +102,18 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
 
 - (void)zh_pushViewController:(UIViewController *)viewController animated:(BOOL)animated
 {
-    if (![self.view.gestureRecognizers containsObject:self.zh_fullscreenPopGestureRecognizer]) {
+    if (![self.interactivePopGestureRecognizer.view.gestureRecognizers containsObject:self.zh_fullscreenPopGestureRecognizer]) {
         
         // Add our own gesture recognizer to where the onboard screen edge pan gesture recognizer is attached to.
-        [self.view addGestureRecognizer:self.zh_fullscreenPopGestureRecognizer];
+        [self.interactivePopGestureRecognizer.view addGestureRecognizer:self.zh_fullscreenPopGestureRecognizer];
+
+        // Forward the gesture events to the private handler of the onboard gesture recognizer.
+        NSArray *internalTargets = [self.interactivePopGestureRecognizer valueForKey:@"targets"];
+        id internalTarget = [internalTargets.firstObject valueForKey:@"target"];
+        SEL internalAction = NSSelectorFromString(@"handleNavigationTransition:");
+        self.zh_fullscreenPopGestureRecognizer.delegate = self.zh_popGestureRecognizerDelegate;
+        [self.zh_fullscreenPopGestureRecognizer addTarget:internalTarget action:internalAction];
+
         // Disable the onboard gesture recognizer.
         self.interactivePopGestureRecognizer.enabled = NO;
     }
@@ -144,52 +142,10 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
     if (!panGestureRecognizer) {
         panGestureRecognizer = [[UIPanGestureRecognizer alloc] init];
         panGestureRecognizer.maximumNumberOfTouches = 1;
-        panGestureRecognizer.delegate = self.zh_popGestureRecognizerDelegate;
-        [panGestureRecognizer addTarget:self action:@selector(panAction:)];
+        
         objc_setAssociatedObject(self, _cmd, panGestureRecognizer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     return panGestureRecognizer;
-}
-
--(void)panAction:(UIPanGestureRecognizer *)getsture
-{
-    BOOL popBack = [objc_getAssociatedObject(getsture, @"popBack") boolValue];
-    if (popBack) {
-        // Forward the gesture events to the private handler of the onboard gesture recognizer.
-        NSArray *internalTargets = [self.interactivePopGestureRecognizer valueForKey:@"targets"];
-        id internalTarget = [internalTargets.firstObject valueForKey:@"target"];
-        
-        SEL selector = NSSelectorFromString(@"handleNavigationTransition:");
-        NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:[[internalTarget class] instanceMethodSignatureForSelector:selector]];
-        [invocation setSelector:selector];
-        [invocation setTarget:internalTarget];
-        [invocation setArgument:&getsture atIndex:2];
-        [invocation invoke];
-    } else {
-        BOOL autoDisplay = self.visibleViewController.zh_autoDisplayCustomNav;
-        if (autoDisplay == NO) {
-            return;
-        }
-        BOOL tracking = [NSRunLoop currentRunLoop].currentMode == UITrackingRunLoopMode;
-        if (tracking ) {
-            CGFloat navHeight = self.visibleViewController.zh_customNav.frame.size.height;
-            CGPoint translation = [getsture translationInView:getsture.view];
-            CGFloat changeAlpha = fabs(translation.y)/navHeight > 1.0f ? 1.0f : fabs(translation.y)/navHeight;
-            NSLog(@"alpha = %f", changeAlpha);
-            if (translation.y < 0) {
-                self.visibleViewController.zh_customNav.alpha -= changeAlpha;
-            } else {
-                self.visibleViewController.zh_customNav.alpha += changeAlpha;
-            }
-            if (self.visibleViewController.zh_customNav.alpha < 0) {
-                self.visibleViewController.zh_customNav.alpha = 0;
-            }
-            if (self.visibleViewController.zh_customNav.alpha > 1) {
-                self.visibleViewController.zh_customNav.alpha = 1;
-            }
-            [getsture setTranslation:CGPointZero inView:getsture.view];
-        }
-    }
 }
 
 @end
@@ -255,7 +211,7 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
         [self.zh_customNav removeFromSuperview];
         [self.view addSubview:self.zh_customNav];
         [self.view bringSubviewToFront:self.zh_customNav];
-
+        
         UIButton *backBtn = [self.zh_customNav viewWithTag:2000];
         if (backBtn) {
             if (self.navigationController== nil || self.navigationController.viewControllers.count > 1) {
@@ -291,16 +247,6 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
 {
     objc_setAssociatedObject(self, @"showCustomNav", [NSNumber numberWithBool:showCustomNav], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [self reloadCustomNav];
-}
-
--(BOOL)zh_autoDisplayCustomNav
-{
-    return [objc_getAssociatedObject(self, @"autoDisplayCustomNav") boolValue];
-}
-
--(void)setZh_autoDisplayCustomNav:(BOOL)showCustomNav
-{
-    objc_setAssociatedObject(self, @"autoDisplayCustomNav", [NSNumber numberWithBool:showCustomNav], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 
