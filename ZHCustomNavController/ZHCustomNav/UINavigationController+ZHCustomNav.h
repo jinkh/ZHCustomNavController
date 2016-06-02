@@ -16,6 +16,8 @@
 
 @property (assign, nonatomic) BOOL zh_showCustomNav;
 
+@property (strong, nonatomic) NSString *zh_title;
+
 -(void)reloadCustomNav;
 
 

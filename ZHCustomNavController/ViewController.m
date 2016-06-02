@@ -28,9 +28,9 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"main view controller";
-    self.view.backgroundColor = [UIColor colorWithRed:236/255.0f green:236/255.0f blue:236/255.0f alpha:1];
+    self.zh_title = @"main view controller";
     self.zh_showCustomNav = YES;
+    self.view.backgroundColor = [UIColor colorWithRed:236/255.0f green:236/255.0f blue:236/255.0f alpha:1];
     
     data = @[@"default nav", @"change default nav", @"new nav"];
     bgView = [[UITableView alloc] initWithFrame:CGRectMake(0, 64,  self.view.frame.size.width, self.view.frame.size.height-64)];

@@ -23,9 +23,9 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    self.title = @"change the default nav";
-    self.view.backgroundColor = [UIColor colorWithRed:236/255.0f green:236/255.0f blue:236/255.0f alpha:1];
+    self.zh_title = @"change the default nav";
     self.zh_showCustomNav = YES;
+    self.view.backgroundColor = [UIColor colorWithRed:236/255.0f green:236/255.0f blue:236/255.0f alpha:1];
     UIButton *jump = [[UIButton alloc] initWithFrame:CGRectMake(self.view.frame.size.width-60, 20, 44, 44)];
     jump.backgroundColor = [UIColor clearColor];
     [jump setTitleColor:[UIColor redColor] forState:UIControlStateNormal];

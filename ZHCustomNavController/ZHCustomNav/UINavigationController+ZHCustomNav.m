@@ -205,7 +205,7 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
         self.automaticallyAdjustsScrollViewInsets = NO;
         UILabel *titleLabel = [self.zh_customNav viewWithTag:2000];
         if (titleLabel) {
-            titleLabel.text = self.title;
+            titleLabel.text = self.zh_title;
         }
         
         [self.zh_customNav removeFromSuperview];
@@ -222,7 +222,12 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
         }
         
     } else {
+        self.navigationController.navigationBarHidden = NO;
         self.zh_customNav.hidden = YES;
+    }
+    
+    if (self.navigationController == [UIApplication sharedApplication].keyWindow.rootViewController) {
+        self.navigationController.navigationBarHidden = YES;
     }
 }
 
@@ -237,6 +242,16 @@ typedef void (^_ZHViewControllerWillAppearInjectBlock)(UIViewController *viewCon
     [self reloadCustomNav];
 }
 
+-(NSString *)zh_title
+{
+    return objc_getAssociatedObject(self, @"title");
+}
+
+-(void)setZh_title:(NSString *)title
+{
+    objc_setAssociatedObject(self, @"title", title, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [self reloadCustomNav];
+}
 
 -(BOOL)zh_showCustomNav
 {
